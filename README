@@ -1,0 +1,12 @@
+SparqlScape
+by kellrott@gmail.com
+
+This plugin is designed to add SPARQL support to Cytoscape.
+Compared to RDFScape ( http://www.bioinformatics.org/rdfscape/wiki/ )
+SparqlScape is designed to connect to an external SPARQL endpoint for 
+graph queries. SparqlScape is also designed to have no external 
+dependicies, so you can add the plugin and make queuies without having
+download Jena or any other RDF library.
+
+
+
