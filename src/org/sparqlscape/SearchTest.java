@@ -1,4 +1,4 @@
-package org.topsan;
+package org.sparqlscape;
 
 import org.sparql.LinkTriple;
 
@@ -97,7 +97,7 @@ public class SearchTest {
 		"BT_0001"
 	};
 	
-	/*
+/*
 PREFIX core:<http://purl.uniprot.org/core/>
 SELECT ?protein WHERE {
 ?protein core:encodedBy ?gene .
@@ -113,7 +113,6 @@ SELECT ?src, core:locusName as ?edge, ?dst WHERE {
 ?src core:organism taxon:818
 }  
 
-
 PREFIX core:<http://purl.uniprot.org/core/>
 SELECT ?g1 as ?src, ?pred as ?edge, ?s2 as ?dst WHERE {
 graph ?g1 {
@@ -124,7 +123,7 @@ graph ?g2 {
 }
 ?s1 ?pred ?s2 
 }
-	 */
+*/
 	
 	public static void main(String args[]) {		
 		SparqlInterface iSparql = new SparqlInterface( "http://proteins:8890/sparql" );		

@@ -16,7 +16,6 @@ public class SparqlData implements Comparable<SparqlData> {
 		this.isURL = true;
 		this.type = type;
 	}
-
 	
 	public void setType(String type) {
 		this.type = type;

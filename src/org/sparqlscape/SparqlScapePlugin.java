@@ -1,10 +1,9 @@
-package org.topsan;
+package org.sparqlscape;
 
 import java.awt.Button;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Label;
-import java.awt.List;
 import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -25,7 +24,7 @@ import cytoscape.CyNode;
 import cytoscape.Cytoscape;
 //import cytoscape.groups.CyGroup;
 import cytoscape.data.CyAttributes;
-import cytoscape.groups.CyGroupManager;
+//import cytoscape.groups.CyGroupManager;
 import cytoscape.layout.algorithms.GridNodeLayout;
 import cytoscape.plugin.CytoscapePlugin;
 import cytoscape.util.CytoscapeAction;
@@ -33,10 +32,12 @@ import cytoscape.view.CytoscapeDesktop;
 import cytoscape.view.cytopanels.CytoPanel;
 import cytoscape.view.cytopanels.CytoPanelState;
 
-public class TOPScape  extends CytoscapePlugin {
+public class SparqlScapePlugin  extends CytoscapePlugin {
 	ConfigureMenuAction configureMenu;
 	TOPScapeContainer tpContainer;
-	public TOPScape() throws Exception{
+	public PreferenceInterface prefs;
+
+	public SparqlScapePlugin() throws Exception{
 		System.out.print("\tTOPScape starting up... ");
 		CytoscapeDesktop desktop = Cytoscape.getDesktop();
 		CytoPanel cytoPanel = desktop.getCytoPanel(SwingConstants.WEST);
@@ -50,10 +51,10 @@ public class TOPScape  extends CytoscapePlugin {
 	@SuppressWarnings("serial")
 	public class TOPScapeContainer extends JPanel implements ActionListener {
 		TextField urlText;
-		TOPScape plugin;
+		SparqlScapePlugin plugin;
 		SparqlInterface iSparql;
 
-		public TOPScapeContainer(TOPScape myPlugin) {
+		public TOPScapeContainer(SparqlScapePlugin myPlugin) {
 			this.setLayout( new GridBagLayout() );
 			GridBagConstraints c = new GridBagConstraints();
 
@@ -80,16 +81,24 @@ public class TOPScape  extends CytoscapePlugin {
 			c.gridx = 0;
 			c.gridy = 4;
 			this.add( fetchSelectedButton, c  );
-
 			
 			c.gridx = 0;
 			c.gridy = 3;
 			Button searchButton = new Button("Find Nodes");
 			searchButton.addActionListener(this);
 			this.add( searchButton, c );			
+			
+			c.gridy = 4;
+			Button editNamespaces = new Button("Edit Namespaces");
+			editNamespaces.addActionListener(this);
+			this.add( editNamespaces, c );			
+			
+			
 			this.setVisible(true);
 
-			iSparql = new SparqlInterface( plugin.configureMenu.serverURL );
+			
+			
+			iSparql = new SparqlInterface( prefs.getEndpoint() );
 		}
 
 		@SuppressWarnings("unchecked")
@@ -114,8 +123,7 @@ public class TOPScape  extends CytoscapePlugin {
 					}
 				}
 				addLinks( iSparql.NodeFilter(null, nodeList.toArray(new LinkTriple[0]) ) );
-			}
-			
+			}			
 			if ( action.equals("Find Nodes") ) {
 				CyNetwork network = Cytoscape.getCurrentNetwork();
 				Set nodeset = network.getSelectedNodes();
@@ -127,12 +135,22 @@ public class TOPScape  extends CytoscapePlugin {
 				LinkTriple [] links = iSparql.NodeSearch(null, nodeList.toArray(new String[0] ));
 				addLinks(links);
 			}
+			if ( action.equals("Edit Namespaces") ) {
+				Map<String,String> nameMap = prefs.getNameSpaces();
+				Map<String,String> newMap = NameSpaceEditor.EditDialog(nameMap);				
+				for ( String key : nameMap.keySet() ) {
+					prefs.removeNameSpace(key);
+				}
+				for ( String key : newMap.keySet() ) {
+					prefs.addNameSpace(key, newMap.get(key) );
+				}				
+			}
 			
 		}
 		
 		private void addLinks( LinkTriple []links ) {
 			CyAttributes nodeAttr = Cytoscape.getNodeAttributes();
-			CyAttributes edgeAttr = Cytoscape.getEdgeAttributes();
+			//CyAttributes edgeAttr = Cytoscape.getEdgeAttributes();
 			Map<CyNode, Boolean> updateList = new HashMap<CyNode, Boolean>();
 			CyNetwork net = Cytoscape.getCurrentNetwork();
 			for ( LinkTriple link : links ) {
@@ -164,39 +182,25 @@ public class TOPScape  extends CytoscapePlugin {
 
 	@SuppressWarnings("serial")
 	public class ConfigureMenuAction extends CytoscapeAction {
-
-		public String serverURL = "http://proteins:8890/sparql"; //"http://localhost/sparql";
-			
+		
 		public Label curServer;
-		public TOPScape plugin;
+		public SparqlScapePlugin plugin;
 
-		public ConfigureMenuAction(TOPScape myPlugin) {
+		public ConfigureMenuAction(SparqlScapePlugin myPlugin) {
 			super("SPARQLScape Configure...");
+			prefs = new PreferenceInterface();
 			setPreferredMenu("Plugins");
-			curServer = new Label(serverURL);
+			curServer = new Label(prefs.getEndpoint());
 			plugin = myPlugin;
 		}
 
-		public void actionPerformed(ActionEvent e) {			
-			/*
-			TextField textField = new TextField( serverURL );
-			Object [] array = { "Server URL", textField };
-			//Object[] options = { "Enter", "Cancel" };
-			JOptionPane option = new JOptionPane(array, 
-					JOptionPane.QUESTION_MESSAGE, 
-					JOptionPane.YES_NO_OPTION );
-					//null, 
-					//options,
-					//options[0] );
-			 */
-			String out = JOptionPane.showInputDialog(Cytoscape.getDesktop(), "New SPARQL URL" );
-			if ( out != null ) {
-				serverURL = out;
-				curServer.setText(out);
+		public void actionPerformed(ActionEvent e) {		
+			String serverURL = JOptionPane.showInputDialog(Cytoscape.getDesktop(), "New SPARQL URL" );
+			if ( serverURL != null ) {
+				curServer.setText(serverURL);
+				prefs.setEndpoint(serverURL);
 				plugin.tpContainer.iSparql.SetEndpoint(serverURL);
 			}
 		}
 	}
-
-
 }

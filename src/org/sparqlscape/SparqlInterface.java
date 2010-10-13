@@ -1,4 +1,4 @@
-package org.topsan;
+package org.sparqlscape;
 
 import java.awt.Button;
 import java.awt.Component;
@@ -172,6 +172,7 @@ public class SparqlInterface {
 		frame.setLocationRelativeTo(null);
 		frame.setSize(600,300);
 		frame.setModal(true);		
+		frame.pack();
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);		
 		frame.setVisible(true);
 

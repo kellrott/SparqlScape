@@ -1,0 +1,18 @@
+<project>
+    <property name="cyto_base" value="../../../opt/cytoscape/"/>
+    <target name="clean">
+        <delete dir="build"/>
+    </target>
+    <target name="compile">
+        <mkdir dir="build/classes"/>
+        <javac srcdir="src" destdir="build/classes">
+			<classpath path="${cyto_base}/cytoscape.jar" />
+        </javac>
+    </target>
+    <target name="jar">
+        <mkdir dir="build/jar"/>
+        <jar destfile="build/jar/SparqlScape.jar" basedir="build/classes">
+			<fileset dir="src"></fileset>
+        </jar>
+    </target>
+</project>
