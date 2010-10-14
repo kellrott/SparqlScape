@@ -9,7 +9,7 @@
 			<classpath path="${cyto_base}/cytoscape.jar" />
         </javac>
     </target>
-    <target name="jar">
+    <target name="jar" depends="compile">
         <mkdir dir="build/jar"/>
         <jar destfile="build/jar/SparqlScape.jar" basedir="build/classes">
 			<fileset dir="src"></fileset>
