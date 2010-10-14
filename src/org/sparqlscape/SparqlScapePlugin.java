@@ -1,6 +1,7 @@
 package org.sparqlscape;
 
 import java.awt.Button;
+import java.awt.Checkbox;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Label;
@@ -12,9 +13,13 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.EtchedBorder;
 
 import org.sparql.LinkTriple;
 
@@ -34,53 +39,58 @@ import cytoscape.view.cytopanels.CytoPanelState;
 
 public class SparqlScapePlugin  extends CytoscapePlugin {
 	ConfigureMenuAction configureMenu;
-	TOPScapeContainer tpContainer;
+	SparqlScapeContainer tpContainer;
 	public PreferenceInterface prefs;
 
 	public SparqlScapePlugin() throws Exception{
-		System.out.print("\tTOPScape starting up... ");
 		CytoscapeDesktop desktop = Cytoscape.getDesktop();
 		CytoPanel cytoPanel = desktop.getCytoPanel(SwingConstants.WEST);
 		configureMenu = new ConfigureMenuAction(this);
 		Cytoscape.getDesktop().getCyMenus().addCytoscapeAction((CytoscapeAction) configureMenu);
-		tpContainer = new TOPScapeContainer(this);		
-		cytoPanel.add("SPARQLScape PlugIn", null, tpContainer, "SPARQLScape PlugIn");
+		tpContainer = new SparqlScapeContainer(this);		
+		cytoPanel.add("SPARQLScape", null, tpContainer, "SPARQLScape");
 		cytoPanel.setState(CytoPanelState.DOCK);
 	}
 
 	@SuppressWarnings("serial")
-	public class TOPScapeContainer extends JPanel implements ActionListener {
+	public class SparqlScapeContainer extends JPanel implements ActionListener {
 		TextField urlText;
 		SparqlScapePlugin plugin;
 		SparqlInterface iSparql;
-
-		public TOPScapeContainer(SparqlScapePlugin myPlugin) {
+		Checkbox filterCheckbox;
+		
+		public SparqlScapeContainer(SparqlScapePlugin myPlugin) {
+			this.plugin = myPlugin;
 			this.setLayout( new GridBagLayout() );
 			GridBagConstraints c = new GridBagConstraints();
 
 			c.anchor = GridBagConstraints.NORTH;
-			c.gridx = 0;
-			c.gridy = 0;
 
-			this.plugin = myPlugin;
-			this.add( plugin.configureMenu.curServer, c );
-
+			JPanel endpointPanel = new JPanel();
+			endpointPanel.setLayout(new GridBagLayout() );
+			endpointPanel.add( new Label("SPARQL Endpoint:"), c );
 			c.gridx = 0;
 			c.gridy = 1;
-
+			endpointPanel.add( plugin.configureMenu.curServer, c );
+			endpointPanel.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
+			c.gridy = 0;
+			this.add( endpointPanel, c);
+			
+			JPanel urlPanel = new JPanel();
+			urlPanel.add( new JLabel("Node Fetch:"), c );
+			c.gridx = 0;
+			c.gridy = 1;
+			urlPanel.setLayout( new GridBagLayout() );
 			urlText = new TextField(30);
-			this.add(urlText, c);
+			urlPanel.add(urlText, c);
 			Button fetchButton = new Button("Fetch");
 			fetchButton.addActionListener(this);
 			c.gridx = 0;
 			c.gridy = 2;
-			this.add( fetchButton, c );
-
-			Button fetchSelectedButton = new Button("Fetch Selected");
-			fetchSelectedButton.addActionListener( this );
-			c.gridx = 0;
-			c.gridy = 4;
-			this.add( fetchSelectedButton, c  );
+			urlPanel.add( fetchButton, c );
+			urlPanel.setBorder( BorderFactory.createEtchedBorder(EtchedBorder.LOWERED) );
+			c.gridy = 1;
+			this.add(urlPanel, c);
 			
 			c.gridx = 0;
 			c.gridy = 3;
@@ -88,15 +98,23 @@ public class SparqlScapePlugin  extends CytoscapePlugin {
 			searchButton.addActionListener(this);
 			this.add( searchButton, c );			
 			
+			JPanel fetchPanel = new JPanel();
+			Button fetchSelectedButton = new Button("Fetch Selected");
+			fetchSelectedButton.addActionListener( this );
+			fetchPanel.add(fetchSelectedButton);
+			filterCheckbox = new Checkbox("Filter", true);
+			fetchPanel.add(filterCheckbox);
+			
+			c.gridx = 0;
 			c.gridy = 4;
+			this.add( fetchPanel, c  );
+			
+			c.gridy = 5;
 			Button editNamespaces = new Button("Edit Namespaces");
 			editNamespaces.addActionListener(this);
-			this.add( editNamespaces, c );			
-			
-			
-			this.setVisible(true);
-
-			
+			this.add( editNamespaces, c );
+						
+			this.setVisible(true);			
 			
 			iSparql = new SparqlInterface( prefs.getEndpoint() );
 		}
@@ -122,17 +140,27 @@ public class SparqlScapePlugin  extends CytoscapePlugin {
 						nodeList.add(newNode);
 					}
 				}
-				addLinks( iSparql.NodeFilter(null, nodeList.toArray(new LinkTriple[0]) ) );
+				if ( filterCheckbox.getState() )
+					addLinks( iSparql.NodeFilter(null, nodeList.toArray(new LinkTriple[0]) ) );
+				else
+					addLinks( nodeList.toArray(new LinkTriple[0]) );
+					
 			}			
 			if ( action.equals("Find Nodes") ) {
+				CyAttributes nodeAttr = Cytoscape.getNodeAttributes();
+
 				CyNetwork network = Cytoscape.getCurrentNetwork();
 				Set nodeset = network.getSelectedNodes();
-				java.util.List<String> nodeList = new LinkedList<String>();
+				java.util.List<Map<String,Object>> nodeList = new LinkedList<Map<String,Object>>();
 				for (Object o : nodeset ) {
 					CyNode node = (CyNode) o;
-					nodeList.add( node.getIdentifier() );
+					Map<String, Object> map = new HashMap<String,Object>();
+					for ( String attr : nodeAttr.getAttributeNames() ) {
+						map.put( attr, nodeAttr.getAttribute( node.getIdentifier(), attr ) );
+					}
+					nodeList.add( map);
 				}				
-				LinkTriple [] links = iSparql.NodeSearch(null, nodeList.toArray(new String[0] ));
+				LinkTriple [] links = iSparql.NodeSearch(null, nodeList, "ID" );
 				addLinks(links);
 			}
 			if ( action.equals("Edit Namespaces") ) {
@@ -175,8 +203,7 @@ public class SparqlScapePlugin  extends CytoscapePlugin {
 			}
 			Cytoscape.getCurrentNetworkView().applyLayout( new GridNodeLayout(), updateList.keySet().toArray(new CyNode[0]), null );
 			Cytoscape.getCurrentNetworkView().redrawGraph(true, true);
-		}
-		
+		}		
 	}
 
 

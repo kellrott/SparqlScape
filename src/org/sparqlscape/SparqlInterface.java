@@ -195,7 +195,7 @@ public class SparqlInterface {
 	}
 
 	public Boolean dialogDone;
-	public LinkTriple [] NodeSearch( Component parent, final String []nodeNames ) {
+	public LinkTriple [] NodeSearch( Component parent, final List<Map<String,Object>> nodeAttributes, final String idCol ) {
 
 		JPanel panel = new JPanel();
 
@@ -222,65 +222,82 @@ public class SparqlInterface {
 		c.gridy = 6;
 		panel.add( new JLabel("<html><p>SPARQL</p><p>INPUT node id: {id}</p><p>OUTPUT  ?src  ?edge ?dst</p></html>"), c  );
 
-		Button searchButton = new Button("Search"); 
+		Button searchButton = new Button("Search Selected"); 
 		searchButton.addActionListener( new ActionListener() {
-			Pattern idRegex = Pattern.compile( "\\{id\\}" );
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				String searchBase = sparqlQuery.getText() ;
 				nameList.clear();
-
 				try {
 					Client sClient = new Client(new URL(endpointURL));
-
-					if ( idRegex.matcher(searchBase).find() ) {
-						for ( String node : nodeNames ) {
-							String searchStr = idRegex.matcher(searchBase).replaceAll( node );		
+					for ( Map<String,Object> attrs : nodeAttributes ) {
+						for ( String key : attrs.keySet() ) {
+							Pattern idRegex = Pattern.compile( "\\{" + key + "\\}" );
+							String searchStr = idRegex.matcher(searchBase).replaceAll( attrs.get(key).toString() );		
 							Results results = sClient.select(searchStr);
 							String colName = results.getResultVars().get(0);
 							for ( Row row : results ) {
 								System.out.println( row.getResource(colName).getURI() );
-								nameList.put( new LinkTriple( new SparqlData(node, true), new SparqlData("sparqlLink", true), row.getResource(colName) ), 1 );
+								nameList.put( new LinkTriple( new SparqlData(idCol, true), new SparqlData("sparqlLink", true), row.getResource(colName) ), 1 );
 							}					
-						}		
-						linkCountLabel.setText( Integer.toString( nameList.size() ) );
-					} else {
-						Results results = sClient.select( searchBase );
+						}
+					}
+					linkCountLabel.setText( Integer.toString( nameList.size() ) );
+				} catch (MalformedURLException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		} );
+		c.gridx = 0;
+		c.gridy = 2;
+		panel.add( searchButton, c );		
 
-						List<String> resVars = results.getResultVars();					
-						String srcName = resVars.get(0);
-						if ( resVars.contains("src") )
-							srcName = "src";					
-						String predName = null;
-						if ( resVars.size() > 1 ) {
-							predName = resVars.get(1);
-							if ( resVars.contains("edge" ) ) 
-								predName = "edge";						
+		Button singleSearchButton = new Button("Single Search"); 
+		singleSearchButton.addActionListener( new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				try {
+					Client sClient = new Client(new URL(endpointURL));
+					String searchBase = sparqlQuery.getText() ;
+
+					Results results = sClient.select( searchBase );
+
+					List<String> resVars = results.getResultVars();					
+					String srcName = resVars.get(0);
+					if ( resVars.contains("src") )
+						srcName = "src";					
+					String predName = null;
+					if ( resVars.size() > 1 ) {
+						predName = resVars.get(1);
+						if ( resVars.contains("edge" ) ) 
+							predName = "edge";						
+					}
+					String dstName = null;
+					if ( resVars.size() > 1 ) {
+						dstName = resVars.get(1);
+						if ( resVars.contains("dst" ) ) 
+							dstName = "dst";						
+					}
+					for (Row row : results ) {
+						String srcURI = row.getResource(srcName).getURI();
+						String edgeURI = null;
+						if ( predName != null )
+							edgeURI = row.getResource(predName).getURI();
+						String dstURI = null;
+						if ( dstName != null) {						
+							if ( row.get(dstName).isURI() )
+								dstURI = row.getResource(dstName).getURI();
+							else
+								dstURI = row.getLiteral(dstName).toString();
 						}
-						String dstName = null;
-						if ( resVars.size() > 1 ) {
-							dstName = resVars.get(1);
-							if ( resVars.contains("dst" ) ) 
-								dstName = "dst";						
-						}
-						for (Row row : results ) {
-							String srcURI = row.getResource(srcName).getURI();
-							String edgeURI = null;
-							if ( predName != null )
-								edgeURI = row.getResource(predName).getURI();
-							String dstURI = null;
-							if ( dstName != null) {						
-								if ( row.get(dstName).isURI() )
-									dstURI = row.getResource(dstName).getURI();
-								else
-									dstURI = row.getLiteral(dstName).toString();
-							}
-							String srcType = getType(srcURI);
-							String edgeType = getType(edgeURI);
-							String dstType = getType(dstURI);							
-							nameList.put( new LinkTriple( new SparqlData(srcURI, srcType), new SparqlData(edgeURI, edgeType), new SparqlData(dstURI, dstType) ), 1 );
-						}					
-					}		
+						String srcType = getType(srcURI);
+						String edgeType = getType(edgeURI);
+						String dstType = getType(dstURI);							
+						nameList.put( new LinkTriple( new SparqlData(srcURI, srcType), new SparqlData(edgeURI, edgeType), new SparqlData(dstURI, dstType) ), 1 );
+					}					
 					linkCountLabel.setText( Integer.toString( nameList.size() ) );
 				} catch (MalformedURLException e1) {
 					// TODO Auto-generated catch block
@@ -288,9 +305,9 @@ public class SparqlInterface {
 				}
 			}
 		});
-		c.gridx = 0;
+		c.gridx = 1;
 		c.gridy = 2;
-		panel.add( searchButton, c );		
+		panel.add( singleSearchButton, c );		
 
 		c.gridx = 0;
 		c.gridy = 4;
