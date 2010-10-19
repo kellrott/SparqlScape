@@ -14,7 +14,7 @@ import org.sparql.LinkTriple;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVStrategy;
 
-public class SearchTest {
+public class ConnectTest {
 
 	
 /*
@@ -56,7 +56,6 @@ graph ?g2 {
 		String []curRead = null;
 		do {
 			curRead = p.getLine();
-			System.out.println( curRead );
 			if ( curRead != null ) {
 				Map<String, Object> features = new HashMap<String,Object>();
 				for ( int i = 0; i < curRead.length; i++ ) {
@@ -66,8 +65,13 @@ graph ?g2 {
 			}			
 		} while ( curRead != null );
 		
-		SparqlInterface iSparql = new SparqlInterface( "http://proteins:8890/sparql" );		
-		for ( LinkTriple link :	iSparql.NodeSearch(null, editList, head[0]) ) {
+		Map<String,String> nsMap = new HashMap<String,String>();
+		nsMap.put("BLAST_UniProt_AC", "http://purl.uniprot.org/uniprot/");
+		
+		SparqlInterface iSparql = new SparqlInterface( "http://proteins:8890/sparql" );
+		iSparql.SetNamespaces(nsMap);
+		
+		for ( LinkTriple link :	iSparql.ConnectionFinder( editList, "BLAST_UniProt_AC", "ID" ) ) {
 			System.out.println( link );
 		}
 		//System.exit(0);		

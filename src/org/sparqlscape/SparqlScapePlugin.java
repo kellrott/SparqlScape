@@ -155,8 +155,16 @@ public class SparqlScapePlugin  extends CytoscapePlugin {
 				for (Object o : nodeset ) {
 					CyNode node = (CyNode) o;
 					Map<String, Object> map = new HashMap<String,Object>();
+					String id = node.getIdentifier();
+					map.put( "ID", id );
 					for ( String attr : nodeAttr.getAttributeNames() ) {
-						map.put( attr, nodeAttr.getAttribute( node.getIdentifier(), attr ) );
+						if ( nodeAttr.hasAttribute(id, attr )) {
+							System.out.println(id + " " + attr + " " + nodeAttr.getType(attr) );
+							if ( nodeAttr.getType(attr) == CyAttributes.TYPE_STRING ) {
+								Object iAttr = nodeAttr.getAttribute( id, attr );
+								map.put( attr, iAttr );
+							}
+						}
 					}
 					nodeList.add( map);
 				}				

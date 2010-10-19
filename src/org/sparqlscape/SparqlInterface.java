@@ -9,6 +9,7 @@ import java.awt.Label;
 import java.awt.TextArea;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -37,7 +38,7 @@ public class SparqlInterface {
 	Map<String,Boolean> nodeTypes;
 	Map<String,String> typeCache;
 	Map<String,Boolean> predExclude;
-
+	Map<String,String> nsMap;
 
 	public SparqlInterface(String url) {
 		endpointURL = url;
@@ -50,6 +51,10 @@ public class SparqlInterface {
 
 	public void SetEndpoint(String url) {
 		endpointURL = url;
+	}
+
+	public void SetNamespaces(Map<String,String> nsMap ) {
+		this.nsMap = nsMap;
 	}
 
 	public String getType( String uri ) {
@@ -238,7 +243,7 @@ public class SparqlInterface {
 							String colName = results.getResultVars().get(0);
 							for ( Row row : results ) {
 								System.out.println( row.getResource(colName).getURI() );
-								nameList.put( new LinkTriple( new SparqlData(idCol, true), new SparqlData("sparqlLink", true), row.getResource(colName) ), 1 );
+								nameList.put( new LinkTriple( new SparqlData(attrs.get(key).toString(), true), new SparqlData("sparqlLink", true), row.getResource(colName) ), 1 );
 							}					
 						}
 					}
@@ -345,5 +350,43 @@ public class SparqlInterface {
 		frame.setVisible(true);		
 		return nameList.keySet().toArray(new LinkTriple[0]);
 	}
+
+
+
+	public LinkTriple [] ConnectionFinder( final List<Map<String,Object>> nodeAttributes, final String searchCol, final String dstCol ) {
+		List<LinkTriple> outList = new LinkedList<LinkTriple>();
+
+		try {
+			Client sClient = new Client(new URL(endpointURL));
+
+			for ( Map<String,Object> varMap : nodeAttributes) {
+				String url = nsMap.get( searchCol ) + varMap.get(searchCol);
+
+				String typeQuery = "select distinct ?o2 where {" + 
+				"<" + url + "> ?p ?o . " + 
+				"?o ?p2 ?o2 }";
+				System.err.println( typeQuery );
+				Results typeResult = sClient.select( typeQuery );
+				if (typeResult != null ) {
+					List<String> cols = typeResult.getResultVars();
+					for ( Row row : typeResult ) {
+						System.out.println( row.get( cols.get(0) ) );
+
+					}
+				}				
+			}
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+
+
+
+
+		return outList.toArray(new LinkTriple[0]);		
+	}
+
+
 
 }
