@@ -1,5 +1,5 @@
 <project>
-    <property name="cyto_base" value="../../../opt/cytoscape/"/>
+    <property name="cyto_base" value="/opt/Cytoscape_v2.8.3/"/>
     <target name="clean">
         <delete dir="build"/>
     </target>

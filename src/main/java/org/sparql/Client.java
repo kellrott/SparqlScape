@@ -29,7 +29,7 @@ public class Client {
 
 		try {
 			String queryURL = endpoint.toString() + "?output=json&query=" + URLEncoder.encode( query, "UTF8" );
-
+			System.out.println(queryURL);
 			URLConnection conn = (new URL(queryURL)).openConnection();
 
 			InputStream in = conn.getInputStream();
@@ -58,11 +58,13 @@ public class Client {
 				for ( String key : varList ) {
 					if ( sparqlRow.has(key)) {
 						JSONObject r = sparqlRow.getJSONObject(key);
-						String type = r.getString("type"); 
-						if ( type.compareTo("uri") == 0 ) {
-							row.put(key, new SparqlData( r.getString("value"), true ) );
-						} else if (type.compareTo("literal") == 0 ) {
-							row.put(key, new SparqlData( r.getString("value"), false ) );						
+						if (r.has("type")) {
+							String type = r.getString("type"); 
+							if ( type.compareTo("uri") == 0 ) {
+								row.put(key, new SparqlData( r.getString("value"), true ) );
+							} else if (type.compareTo("literal") == 0 ) {
+								row.put(key, new SparqlData( r.getString("value"), false ) );						
+							}
 						}
 					}
 				}
